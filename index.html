@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jpshadereditorInclude — composición de nodos como fondo</title>
+    <link rel="icon" href="data:,">
+
+    <!-- ============================================================
+         ESTE <script> ES TODO LO QUE NECESITA CUALQUIER PÁGINA.
+         Carga el engine desde el servidor de jpshadereditor y pone la
+         composición como fondo. data-comp = composición guardada en el
+         nodeeditor; data-pass = qué caja se ve (opcional).
+         ============================================================ -->
+    <script>
+        // Auto-detecto el host: en local apunta al server de desarrollo, si no a producción.
+        var JP_BASE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
+            ? location.protocol + '//' + location.host + '/jpshadereditor'
+            : 'https://fullscreencode.com/jpshadereditor';
+        document.write('<script src="' + JP_BASE + '/include.js" data-comp="nodeeditor-0857" data-pass="ndlf4r28qv"><\/script>');
+    </script>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: #06070a;
+            color: #e8eefc;
+            font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* el shader va detrás (z-index:-1) ⇒ el contenido se pinta encima */
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 64px 24px 120px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 5px 12px;
+            border: 1px solid rgba(255, 211, 77, .45);
+            border-radius: 999px;
+            color: #ffd34d;
+            font-size: 12px;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: clamp(30px, 6vw, 62px);
+            line-height: 1.05;
+            margin: 18px 0 10px;
+            background: linear-gradient(92deg, #fff 0%, #ffd34d 55%, #7ce7ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .sub { color: #9fb2d0; max-width: 720px; margin: 0 0 26px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 18px;
+            margin: 34px 0;
+        }
+
+        .card {
+            background: rgba(10, 13, 20, .58);
+            border: 1px solid rgba(255, 255, 255, .10);
+            border-radius: 16px;
+            padding: 20px 22px;
+            backdrop-filter: blur(9px);
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 13px;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: #8ea0c0;
+        }
+
+        .card p { margin: 0; color: #c3d0e6; font-size: 14.5px; }
+
+        pre {
+            background: rgba(4, 6, 10, .72);
+            border: 1px solid rgba(255, 255, 255, .09);
+            border-left: 3px solid #ffd34d;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin: 12px 0 0;
+            overflow: auto;
+            font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            color: #9ce39c;
+        }
+
+        kbd {
+            background: #1b2130;
+            border: 1px solid #39415a;
+            border-bottom-width: 2px;
+            border-radius: 6px;
+            padding: 1px 7px;
+            font: 12px ui-monospace, monospace;
+            color: #fff;
+        }
+
+        .hint { font-size: 12.5px; color: #6f7d96; margin-top: 10px; }
+
+        a { color: #7ce7ff; }
+
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, .09);
+            color: #7d8ba6;
+            font-size: 13.5px;
+        }
+
+        footer a { margin-right: 14px; }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <span class="tag">jpshadereditorInclude</span>
+        <h1>Una composición de nodos,<br>como fondo de tu página.</h1>
+        <p class="sub">
+            Este fondo NO es una imagen ni un video: es el <b>render WebGL en vivo</b> de la composición
+            <b>nodeeditor-0857</b>, servida por el nodeeditor. Si la editás y la volvés a guardar,
+            esta página se actualiza sola.
+        </p>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Cómo se usa</h3>
+                <p>Un solo <code>&lt;script&gt;</code> en el header. Nada más.</p>
+                <pre>&lt;script src="…/jpshadereditor/include.js"
+        data-comp="nodeeditor-0857"
+        data-pass="ndlf4r28qv"&gt;&lt;/script&gt;</pre>
+            </div>
+
+            <div class="card">
+                <h3>Panel secreto</h3>
+                <p>
+                    Apretá <kbd>S</kbd> en cualquier parte de esta página: se abre el panel donde pegás el
+                    link del nodeeditor y le ponés ese fondo a la página. También te da el
+                    <code>&lt;script&gt;</code> listo para copiar.
+                </p>
+                <p class="hint">El link tiene esta pinta: <code>nodeeditor.html?output=1&amp;comp=…&amp;pass=…</code></p>
+            </div>
+
+            <div class="card">
+                <h3>Se actualiza solo</h3>
+                <p>
+                    El sistema vive en el <b>backend</b>: el servidor resuelve la composición a un plan de
+                    render (GLSL final, cables, uniforms y orden) y esta página sólo lo aplica. Cada
+                    <b>20 s</b> se vuelve a pedir ⇒ lo que guardás en el nodeeditor aparece acá.
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>API desde consola</h3>
+                <pre>JPShaderInclude.set('nodeeditor-0857', 'ndlf4r28qv')
+JPShaderInclude.state()
+JPShaderInclude.reload()
+JPShaderInclude.clear()
+JPShaderInclude.openPanel()</pre>
+            </div>
+        </div>
+
+        <footer>
+            <a href="/jpshadereditor/nodeeditor.html">→ NodeEditor</a>
+            <a href="/jpshadereditor/compositions.html">→ Composiciones</a>
+            <a href="/jpshadereditor/">→ JP Shader Editor</a> ·
+            <span>FULLSCREEN · sistemasfullscreen</span>
+        </footer>
+    </div>
+
+    <!--
+      Este <script> lo carga el nodeeditor como ejemplo de implementación del FRONT.
+      El engine (include.js) trae el panel secreto, el loop, el refresco automático
+      y todo lo demás: la página no tiene que programar nada de WebGL.
+    -->
+    <script src="demo.js" defer></script>
+</body>
+
+</html>
