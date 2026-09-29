@@ -9,9 +9,13 @@
 
     <!-- ============================================================
          ESTE <script> ES TODO LO QUE NECESITA CUALQUIER PÁGINA.
-         Carga el engine desde el servidor de jpshadereditor y pone la
-         composición como fondo. data-comp = composición guardada en el
-         nodeeditor; data-pass = qué caja se ve (opcional).
+         Carga el engine desde el servidor de jpshadereditor y pone el fondo.
+         Tres fuentes posibles (el tipo se detecta solo):
+           data-comp="<nombre>"           -> composicion del nodeeditor (+ data-pass)
+           data-shader="<nombre>"         -> un shader de la galeria
+           data-performance="<sessionId>" -> el output de una sesion de performance
+         Tambien podes pegar el link de salida en el panel (tecla S) o pasar
+         ?comp= / ?shader= / ?session= por la URL. Abajo: ejemplo con data-comp.
          ============================================================ -->
     <script>
         // El ENGINE (include.js) vive en el BACKEND (Node/Express), NO en el front

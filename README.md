@@ -26,8 +26,30 @@ Pegá esto en el `<head>` de cualquier página:
 > `Access-Control-Allow-Origin: *`, así que se puede embeber desde cualquier dominio
 > (incluido `fullscreencode.com`).
 
-- `data-comp` → nombre de la composición guardada en el nodeeditor (obligatorio).
-- `data-pass` → uid de la caja que se ve de fondo (opcional; si falta, usa el `output` de la composición).
+### Las 3 fuentes que acepta (se elige con el link / el atributo)
+
+| Fuente | Atributo | Link del que se saca |
+|---|---|---|
+| **Composición del NodeEditor** | `data-comp="<nombre>"` (+ `data-pass`) | `nodeeditor.html?output=1&comp=<nombre>&pass=<uid>` |
+| **Un shader de la galería** | `data-shader="<nombre>"` | `shader.html?shader=<nombre>` |
+| **Output de una sesión de performance** | `data-performance="<sesionId>"` | `performanceoutput.html?session=<sesionId>` |
+
+```html
+<!-- un shader suelto (1 o varios pases: si tiene buffers, el backend los arma solo) -->
+<script src="…/include.js" data-shader="vuelapelucas-fondo"></script>
+
+<!-- el stack de capas de una sesion de performance (blend modes incluidos) -->
+<script src="…/include.js" data-performance="jpupper_mnhy0m84"></script>
+```
+
+- `data-comp` → composición guardada en el nodeeditor.
+- `data-pass` → uid de la caja que se ve de fondo (opcional; si falta, usa el `output`).
+- `data-shader` → nombre del shader en la galería (`shader.html?shader=…`).
+- `data-performance` → id de la sesión (`performanceoutput.html?session=…`).
+
+La **sesión de performance** se renderiza tal como quedó guardada: una capa por fila
+(con su opacidad y su blend mode, los 25 de siempre), usando el paso en el que estaba
+cada fila (`currentStep`). No reproduce el timeline/transiciones ni los FX por celda.
 
 Y ya está. No hay que programar nada más: el engine crea el canvas, carga el renderer,
 pide el plan, lo renderiza y se mantiene al día.
@@ -38,23 +60,27 @@ pide el plan, lo renderiza y se mantiene al día.
 
 En **cualquier página** que tenga el include, la tecla <kbd>S</kbd> abre un panel donde podés:
 
-- **Pegar el link de salida del nodeeditor** y aplicarlo a esa página al instante.
+- **Pegar cualquier link de salida** y aplicarlo al instante — detecta solo el tipo:
   ```
   /jpshadereditor/nodeeditor.html?output=1&comp=nodeeditor-0857&pass=ndlf4r28qv
+  /jpshadereditor/shader.html?shader=vuelapelucas-fondo
+  /jpshadereditor/performanceoutput.html?session=jpupper_mnhy0m84
   ```
-  (también acepta sólo el nombre de la composición).
-- Ver las **composiciones guardadas** y cambiar de una a otra con un click.
-- Copiar el **`<script>` listo** para pegar en la página.
-- Ver el estado real: composición, pase, cantidad de pases, FPS y errores.
+  (o el nombre con prefijo: `shader:miShader` · `perf:jpupper_xxx` · `comp:miComp`;
+  un nombre pelado se toma como composición).
+- Ver las listas de **composiciones**, **shaders** y **sesiones de performance** y
+  cambiar de una a otra con un click.
+- Copiar el **`<script>` listo** (con el atributo que corresponde al tipo elegido).
+- Ver el estado real: fuente, valor, pase, cantidad de pases, FPS y errores.
 
 Lo elegido queda guardado en `localStorage` (`jpsi:config`), así la próxima vez la página
-arranca con esa composición. El orden de prioridad es:
+arranca con esa fuente. El orden de prioridad es:
 
 ```
-?comp= en la URL de la página  →  data-comp del <script>  →  panel / localStorage
+?comp= / ?shader= / ?session= en la URL  →  data-* del <script>  →  panel / localStorage
 ```
 
-Eso significa que **podés compartir un link** `https://tu-pagina/?comp=nodeeditor-0857&pass=ndlf4r28qv`
+Eso significa que **podés compartir un link** `https://tu-pagina/?shader=vuelapelucas-fondo`
 y el fondo cambia sin tocar el código.
 
 ---
@@ -62,10 +88,14 @@ y el fondo cambia sin tocar el código.
 ## API desde consola / desde JS
 
 ```js
-JPShaderInclude.set('nodeeditor-0857', 'ndlf4r28qv'); // cambia el fondo
+JPShaderInclude.setLink('/jpshadereditor/shader.html?shader=vuelapelucas-fondo'); // detecta el tipo solo
+JPShaderInclude.setSource('shader', 'vuelapelucas-fondo');  // 'shader' | 'performance' | 'comp'
+JPShaderInclude.setSource('performance', 'jpupper_mnhy0m84');
+JPShaderInclude.setSource('comp', 'nodeeditor-0857', 'ndlf4r28qv');
+JPShaderInclude.set('nodeeditor-0857', 'ndlf4r28qv');       // atajo = setSource('comp', …)
 JPShaderInclude.clear();                              // lo saca
 JPShaderInclude.reload();                             // fuerza recargar el plan
-JPShaderInclude.state();                              // { ready, fps, comp, pass, passes, order, canvas, err }
+JPShaderInclude.state();                              // { ready, fuente, valor, passes, order, canvas, err }
 JPShaderInclude.config();                             // configuración efectiva
 JPShaderInclude.renderer();                           // el WebGLRenderer (para tocar uniforms en vivo)
 JPShaderInclude.setBpm(128);                          // BPM global del shader
@@ -78,8 +108,10 @@ JPShaderInclude.openPanel();                          // abre el panel (igual qu
 
 | Atributo | Default | Qué hace |
 |---|---|---|
-| `data-comp` | — | composición a renderizar |
+| `data-comp` | — | composición del nodeeditor a renderizar |
 | `data-pass` | `output` de la composición | caja que se ve de fondo |
+| `data-shader` | — | un shader de la galería (por nombre) |
+| `data-performance` | — | el output de una sesión de performance (por sessionId) |
 | `data-base` | se deduce del `src` | base del app (si lo servís desde otro host) |
 | `data-refresh` | `20` | segundos entre chequeos de cambios (`0` = no chequear) |
 | `data-bpm` | `120` | BPM global |
@@ -95,21 +127,27 @@ JPShaderInclude.openPanel();                          // abre el panel (igual qu
 
 ```
    ┌──────────── PÁGINA DEL USUARIO ────────────┐
-   │ <script src="…/include.js" data-comp=…>    │
+   │ <script src="…/include.js" data-*=…>       │
    │   └─ engine (front): canvas + loop + panel │
    └───────────────┬────────────────────────────┘
-                   │ GET /api/include/plan?comp=…&pass=…
+                   │ GET /api/include/plan?comp=…   (o ?shader=… / ?performance=…)
                    ▼
    ┌──────────── BACKEND (jpshadereditor) ──────┐
-   │ · lee la composición de Mongo               │
-   │ · resuelve el grafo → GLSL FINAL:           │
-   │     header de globales + common + wrapper   │
-   │     de mainImage + iChannel inyectados      │
+   │ · lee de Mongo (composición | shader | sesión) │
+   │ · resuelve a GLSL FINAL:                    │
+   │     composición: header de globales + common│
+   │       + wrapper mainImage + iChannel        │
+   │     shader: MISMO header que usa el editor  │
+   │       (js/lib/jp-shader-header.js)          │
+   │     performance: pase por capa + pase de    │
+   │       compositing con los blend modes       │
+   │       compartidos (js/lib/jp-blend-glsl.js) │
    │ · calcula orden de pases, alias de samplers │
    │   y valores de uniforms                     │
    │ · devuelve el plan ya listo                 │
    └─────────────────────────────────────────────┘
 ```
+
 
 El navegador **no arma ningún grafo**: recibe `passes[]` con el `source` GLSL final,
 los `inputs`, los `aliases` y los `uniforms`, y los carga con el **mismo `WebGLRenderer`
