@@ -14,10 +14,15 @@
          nodeeditor; data-pass = qué caja se ve (opcional).
          ============================================================ -->
     <script>
-        // Auto-detecto el host: en local apunta al server de desarrollo, si no a producción.
+        // El ENGINE (include.js) vive en el BACKEND (Node/Express), NO en el front
+        // estático: fullscreencode.com es Apache y ahí /jpshadereditor/include.js
+        // da 404. Por eso: en local apunto al server de desarrollo y en producción
+        // al backend del VPS (que además manda Access-Control-Allow-Origin: *, así
+        // que se puede embeber desde cualquier dominio).
+        var JP_VPS = 'https://vps-4455523-x.dattaweb.com';
         var JP_BASE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)
             ? location.protocol + '//' + location.host + '/jpshadereditor'
-            : 'https://fullscreencode.com/jpshadereditor';
+            : JP_VPS + '/jpshadereditor';
         document.write('<script src="' + JP_BASE + '/include.js" data-comp="nodeeditor-0857" data-pass="ndlf4r28qv"><\/script>');
     </script>
 

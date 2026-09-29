@@ -15,10 +15,16 @@ que la embebe la toma al instante.
 Pegá esto en el `<head>` de cualquier página:
 
 ```html
-<script src="https://fullscreencode.com/jpshadereditor/include.js"
+<script src="https://vps-4455523-x.dattaweb.com/jpshadereditor/include.js"
         data-comp="nodeeditor-0857"
         data-pass="ndlf4r28qv"></script>
 ```
+
+> ⚠️ **El `src` apunta al BACKEND (VPS), no a `fullscreencode.com`.**
+> El front de `fullscreencode.com` es Apache/estático y el engine lo sirve Node:
+> `fullscreencode.com/jpshadereditor/include.js` da **404**. El engine manda
+> `Access-Control-Allow-Origin: *`, así que se puede embeber desde cualquier dominio
+> (incluido `fullscreencode.com`).
 
 - `data-comp` → nombre de la composición guardada en el nodeeditor (obligatorio).
 - `data-pass` → uid de la caja que se ve de fondo (opcional; si falta, usa el `output` de la composición).
@@ -125,22 +131,22 @@ y sigue. No hay que tocar la página.
 | `GET /jpshadereditor/include.js` | el engine embebible (cache 60 s + `stale-while-revalidate`) |
 | `GET /jpshadereditor/api/include/plan?comp=&pass=` | la composición resuelta a plan de render |
 | `GET /jpshadereditor/api/include/info` | versión del engine + base (cache-busting) |
-| `GET /jpshadereditor/jpshadereditorinclude/` | **este** front de ejemplo, servido por el app |
+
+> Este front de ejemplo se publica en el FTP estático (`fullscreencode.com/jpshadereditorinclude/`).
+> El backend **no** lo sirve: sólo expone el engine y el plan.
 
 ---
 
 ## Probar en local
 
 ```bash
-cd D:/Programacion/sistemasfullscreen/jpshadereditor
+cd D:/Programacion/sistemasfullscreen/jpshaderszone/jpshadereditor
 node server.js                 # localhost:3250
 ```
 
-Luego abrí `http://localhost:3250/jpshadereditor/jpshadereditorinclude/`
-(el `index.html` detecta el host solo y apunta al server local).
-
-También funciona abriendo el `index.html` con doble click (`file://`), porque el backend
-manda `Access-Control-Allow-Origin: *`.
+Después abrí **este `index.html`** (doble click `file://`, o servido donde quieras): detecta el
+host solo y en local apunta al server de desarrollo (`localhost:3250/jpshadereditor`). El backend
+manda `Access-Control-Allow-Origin: *`, así que funciona cross-origin sin configurar nada.
 
 ---
 
@@ -149,6 +155,7 @@ manda `Access-Control-Allow-Origin: *`.
 | Síntoma | Causa / solución |
 |---|---|
 | Fondo negro, sin error | la composición no tiene cajas renderizables, o `data-comp` está mal escrito |
+| `include.js` da **404** y no aparece el fondo ni el panel (`S`) | estás pidiendo el engine a `fullscreencode.com` (Apache, estático). Tiene que apuntar al **backend del VPS**: `https://vps-4455523-x.dattaweb.com/jpshadereditor/include.js` |
 | `Composición no encontrada` | el nombre no coincide con el guardado (mirá el panel, lista las reales) |
 | No se ve nada y el body quedó de color | tu CSS pinta el `body` con `!important`: usá `data-keep-bg="1"` y hacé el fondo transparente vos |
 | Anda en local pero no en producción | el `include.js` de producción es viejo: se actualiza solo (cache 60 s) — refrescá con Ctrl+F5 |
