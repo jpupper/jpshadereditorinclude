@@ -4,9 +4,11 @@
 En vivo, y **se actualiza sola**: si volvés a guardar la composición en el nodeeditor, la página
 que la embebe la toma al instante.
 
-> ⚠️ Esta carpeta es **sólo el front de ejemplo**. El sistema de verdad vive en el
-> **backend** de jpshadereditor: el servidor resuelve la composición a un *plan de render*
-> y el engine embebido únicamente lo aplica.
+> ⚠️ Esta carpeta es **sólo el front de ejemplo**: su `index.html` no tiene más que el
+> `<script>` del engine (ni un `div`, ni un `.js` propio). El sistema de verdad vive en el
+> **backend** de jpshadereditor: el servidor resuelve la fuente a un *plan de render* y el
+> engine embebido únicamente lo aplica. Toda la interfaz (panel, pestañas, buscador, HUD)
+> la construye el engine.
 
 ---
 
@@ -75,22 +77,34 @@ pide el plan, lo renderiza y se mantiene al día.
 
 ---
 
-## Panel secreto (tecla `S`)
+## Panel (tecla `S`) — toda la interfaz la arma el engine
 
-En **cualquier página** que tenga el include, la tecla <kbd>S</kbd> abre un panel donde podés:
+En **cualquier página** que tenga el include, la tecla <kbd>S</kbd> abre el panel. **No hay que
+agregar ni un `div` a la página**: el HTML del include es sólo el `<script>`, y el engine
+construye el canvas, el HUD, el panel, las listas y el buscador.
 
-- **Pegar cualquier link de salida** y aplicarlo al instante — detecta solo el tipo:
+El panel tiene **3 pestañas indexadas con miniatura**, para elegir la fuente de un click:
+
+| Pestaña | Qué lista | Se aplica como |
+|---|---|---|
+| **SHADERS** | la galería completa (nombre, autor, pases, miniatura) | `data-shader` |
+| **NODE PRESETS** | las composiciones guardadas en el nodeeditor (título, autor, cajas) | `data-comp` (+ `data-pass`) |
+| **PERFORMANCE** | las sesiones guardadas del modo performance (nombre, usuario) | `data-performance` |
+
+- **Buscador directo por nombre** (filtra la pestaña activa; ignora mayúsculas y acentos).
+- Cada tarjeta: **Usar** (le pone ese fondo a la página) y **↗** (abre la fuente en el editor).
+- **Link directo**: pegá cualquier link de salida y aplicá con **Enter** o con el botón.
+  Detecta solo el tipo:
   ```
   /jpshadereditor/nodeeditor.html?output=1&comp=nodeeditor-0857&pass=ndlf4r28qv
   /jpshadereditor/shader.html?shader=vuelapelucas-fondo
   /jpshadereditor/performanceoutput.html?session=jpupper_mnhy0m84
   ```
   (o el nombre con prefijo: `shader:miShader` · `perf:jpupper_xxx` · `comp:miComp`;
-  un nombre pelado se toma como composición).
-- Ver las listas de **composiciones**, **shaders** y **sesiones de performance** y
-  cambiar de una a otra con un click.
-- Copiar el **`<script>` listo** (con el atributo que corresponde al tipo elegido).
-- Ver el estado real: fuente, valor, pase, cantidad de pases, FPS y errores.
+  un nombre pelado se toma como composición; tolera comillas y espacios).
+- **fuente actual**: muestra el link de la fuente en uso con un botón **↗ ir al link**.
+- **cómo se usa**: el `<script>` listo con la fuente elegida y un botón **Copiar script**.
+- Estado real: fuente, valor, pase, cantidad de pases, FPS y errores.
 
 Lo elegido queda guardado en `localStorage` (`jpsi:config`), así la próxima vez la página
 arranca con esa fuente. El orden de prioridad es:
@@ -101,6 +115,12 @@ arranca con esa fuente. El orden de prioridad es:
 
 Eso significa que **podés compartir un link** `https://tu-pagina/?shader=vuelapelucas-fondo`
 y el fondo cambia sin tocar el código.
+
+### HUD
+
+Abajo a la derecha hay un badge chiquito (`✦ jpshadereditorInclude · N fps · [S]`) — así una
+página que sólo tiene el `<script>` no queda "vacía" y se ve que hay un panel. Se apaga con
+`data-hud="0"` o con el `✕` (queda recordado).
 
 ---
 
@@ -132,9 +152,11 @@ JPShaderInclude.openPanel();                          // abre el panel (igual qu
 | `data-shader` | — | un shader de la galería (por nombre) |
 | `data-performance` | — | el output de una sesión de performance (por sessionId) |
 | `data-base` | se deduce del `src` | base del app (si lo servís desde otro host) |
+| `data-front` | el front público | base de las páginas del editor (los links que abre el panel) |
 | `data-refresh` | `20` | segundos entre chequeos de cambios (`0` = no chequear) |
 | `data-bpm` | `120` | BPM global |
-| `data-panel` | `1` | `0` desactiva el panel secreto |
+| `data-panel` | `1` | `0` desactiva el panel (tecla `S`) |
+| `data-hud` | `1` | `0` no muestra el badge de abajo a la derecha |
 | `data-keep-bg` | `0` | `1` no toca el fondo del `body` (si tu CSS ya lo maneja) |
 | `data-fps` | `1` | `0` no actualiza el contador de FPS del panel |
 | `data-max-dpr` | `2` | tope de devicePixelRatio (calidad vs. performance) |
@@ -198,12 +220,17 @@ y sigue. No hay que tocar la página.
 
 ```bash
 cd D:/Programacion/sistemasfullscreen/jpshaderszone/jpshadereditor
-node server.js                 # localhost:3250
+node server.js                 # localhost:3250 (necesita Mongo)
 ```
 
-Después abrí **este `index.html`** (doble click `file://`, o servido donde quieras): detecta el
-host solo y en local apunta al server de desarrollo (`localhost:3250/jpshadereditor`). El backend
-manda `Access-Control-Allow-Origin: *`, así que funciona cross-origin sin configurar nada.
+Después abrí **este `index.html`**: si lo servís en `localhost` apunta al server de desarrollo
+(`localhost:3250/jpshadereditor`); si lo abrís con doble click (`file://`) apunta directo al
+backend del VPS. En los dos casos el backend manda `Access-Control-Allow-Origin: *`, así que
+funciona cross-origin sin configurar nada.
+
+Para probar el engine **local contra la DB real sin publicar**: levantá el proxy de
+`tmp/uitest/serve_engine_test.js` (sirve el `include.js` de tu disco y proxea el resto al VPS)
+y hacé `node tmp/uitest/test_include_panel_v3.js`.
 
 ---
 
