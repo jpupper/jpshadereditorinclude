@@ -10,6 +10,25 @@ que la embebe la toma al instante.
 
 ---
 
+## Salida limpia (player) para otras apps
+
+Si lo que necesitás es un fondo/salida **sin ninguna interfaz** (para meterlo en un iframe, en
+un sistema de proyección, en un secuenciador, etc.) usá el player del repo del editor:
+
+```
+https://vps-4455523-x.dattaweb.com/jpshadereditor/include-player.html?shader=vuelapelucas-fondo
+      &base=https%3A%2F%2Fvps-4455523-x.dattaweb.com%2Fjpshadereditor     ← absoluta, obligatoria si la página va proxeada
+```
+
+Acepta `?shader=` / `?comp=[&pass=]` / `?session=`. Panel desactivado (una tecla no puede abrir
+un panel encima de la salida). El LidarGrid del lidar lo usa así: cada shader/composición/
+performance es una FUENTE que se arrastra a una celda y se proyecta con esta página.
+
+⚠ Si la página que embebe el player la **proxea** un servidor (así lo hace el lidar para
+inyectarle los eventos del lidar), los parámetros de la fuente quedan dentro de `?url=` y
+`location.origin` NO es el del editor: por eso el player parsea la url interna y la base va
+absoluta en `&base=`.
+
 ## Uso (30 segundos)
 
 Pegá esto en el `<head>` de cualquier página:
