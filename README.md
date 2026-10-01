@@ -124,6 +124,50 @@ página que sólo tiene el `<script>` no queda "vacía" y se ve que hay un panel
 
 ---
 
+## 📌 El fondo de cada PÁGINA se guarda en el servidor (y se trackea)
+
+**El problema que resuelve.** El panel ya guardaba la elección en `localStorage`, pero una
+página que trae `data-comp` / `data-shader` en el `<script>` tiene una fuente **explícita**, y
+esa gana sobre lo guardado: aplicabas un fondo, apretabas **F5** y volvía la fuente del HTML.
+Ahora lo elegido se fija **en el servidor, por página**.
+
+**Cómo funciona:**
+
+1. **Cada carga se registra.** Al arrancar, el engine se presenta en
+   `POST /api/include/register` con su identidad: `host + path` (o `data-page="alias"`, o
+   `?page=alias`), el título, qué **declara** su HTML y qué fondo está **usando**. Nada más.
+2. **Aplicar un fondo lo fija para esa página** ("esta página va a usar SIEMPRE esto"). Queda
+   en la DB: sobrevive al F5, **vale para todos los visitantes** y pisa el `data-*` del HTML.
+   El botón **💾 Guardar para esta página** hace lo mismo sin cambiar la fuente, y **Soltar**
+   vuelve a lo que declara el HTML.
+3. **El server manda.** Al cargar, la respuesta del registro incluye la fuente fijada (si hay)
+   y el engine la aplica antes de pedir el plan. El orden de prioridad queda:
+   ```
+   ?comp= / ?shader= / ?performance= en la URL   (override manual, para probar)
+     → fuente FIJADA en el servidor para esta página
+     → data-* del <script>
+     → localStorage
+   ```
+4. **En vivo, sin recargar.** El engine se une a un room de socket
+   (`includePageHello {key}`) y el server le empuja `includePageUpdate`: si el admin cambia el
+   fondo de esa página, la página lo cambia al instante.
+
+**Panel del admin** (`jpshadereditor/admin.html` → pestaña **INCLUDE**): la lista de páginas
+que usan el include, con **de dónde se conectan** (host, IP, user-agent, visitas, última vez),
+qué declara su HTML, qué fondo están usando y **cuál está fijado** — con un selector para
+fijar/cambiar/soltar la fuente de cada una (se aplica en vivo) y un 🗑️ para olvidar una página.
+
+**Consola:** `JPShaderInclude.pageInfo()` (clave, declarado, en uso, fijado, registro del
+server) · `JPShaderInclude.pin()` / `.unpin()` · `JPShaderInclude.register(true)`.
+
+Backend: colección `include_pages` · `POST /api/include/register` (público) ·
+`GET|POST /api/include/pages` y `DELETE /api/include/pages/:key` (admin).
+
+> Atributo nuevo: **`data-page="alias"`** — clave linda y estable para la página (si no, se usa
+> `host + path`). Útil cuando la URL cambia (subcarpetas, `index.html`, etc.).
+
+---
+
 ## API desde consola / desde JS
 
 ```js
