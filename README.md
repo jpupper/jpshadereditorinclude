@@ -118,9 +118,20 @@ y el fondo cambia sin tocar el código.
 
 ### HUD
 
-Abajo a la derecha hay un badge chiquito (`✦ jpshadereditorInclude · N fps · [S]`) — así una
-página que sólo tiene el `<script>` no queda "vacía" y se ve que hay un panel. Se apaga con
-`data-hud="0"` o con el `✕` (queda recordado).
+**Por defecto NO se muestra nada**: una página que sólo tiene el include queda **limpia**
+(así lo pidió el dueño del sistema). Existe un badge chiquito
+(`✦ jpshadereditorInclude · N fps · [S]`) que se activa con **`data-hud="1"`** — útil en
+desarrollo para ver que el engine cargó — y se apaga con el `✕` (queda recordado). El panel
+(tecla `S`) funciona igual: **sólo el panel muestra interfaz**.
+
+**Rendimiento (02-Oct-2026).** Abrir el panel pedía los 3 catálogos a Mongo y podía tardar
+**de 15 s a minutos** si Atlas se ponía lento (y el panel quedaba vacío). Ahora: el server los
+sirve **cacheados** (memoria + snapshot en disco, 45 s) y se **precalienta solo** al arrancar,
+el engine los pide **de a uno y empezando por la pestaña activa**, y la lista de composiciones
+ya **no manda el grafo** (`boxes`, que eran 616 de los 622 KB). Medido en un navegador real:
+página 156 ms · panel 49 ms · catálogo de shaders 84 ms · composiciones 43 ms.
+Las miniaturas son **URLs de Cloudflare R2** (nunca base64 en la base) y el preview de una
+tarjeta **sólo se renderiza al pasar el mouse**, de a una: no se "indexa" ninguna preview.
 
 ---
 
@@ -200,7 +211,7 @@ JPShaderInclude.openPanel();                          // abre el panel (igual qu
 | `data-refresh` | `20` | segundos entre chequeos de cambios (`0` = no chequear) |
 | `data-bpm` | `120` | BPM global |
 | `data-panel` | `1` | `0` desactiva el panel (tecla `S`) |
-| `data-hud` | `1` | `0` no muestra el badge de abajo a la derecha |
+| `data-hud` | `0` | `1` muestra el badge de abajo a la derecha (por defecto **no**; una página con el include queda limpia) |
 | `data-keep-bg` | `0` | `1` no toca el fondo del `body` (si tu CSS ya lo maneja) |
 | `data-fps` | `1` | `0` no actualiza el contador de FPS del panel |
 | `data-max-dpr` | `2` | tope de devicePixelRatio (calidad vs. performance) |
