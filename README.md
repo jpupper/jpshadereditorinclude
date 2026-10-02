@@ -133,6 +133,14 @@ página 156 ms · panel 49 ms · catálogo de shaders 84 ms · composiciones 43 
 Las miniaturas son **URLs de Cloudflare R2** (nunca base64 en la base) y el preview de una
 tarjeta **sólo se renderiza al pasar el mouse**, de a una: no se "indexa" ninguna preview.
 
+**Fondo FIJADO y base caída (02-Oct-2026).** Una página cuyo fondo está fijado **sólo en el
+server** (su HTML no declara `data-*`, ej. `vuelapelucas3000.com.ar`) no puede depender de la
+base para arrancar: si el registro tardaba (Atlas en un bache) la página **quedaba sin fondo**.
+Ahora el registro sirve la fuente fijada desde el **caché** (memoria + snapshot en disco), el
+engine aplica el **pin guardado en `localStorage`** al instante —sin esperar al server— y
+reintenta una vez si la respuesta no llega. Probado con Mongo inalcanzable: la página carga
+igual.
+
 ---
 
 ## 📌 El fondo de cada PÁGINA se guarda en el servidor (y se trackea)
