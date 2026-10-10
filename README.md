@@ -247,6 +247,12 @@ registro (`/api/include/register`) las devuelve y el engine las aplica solo: sob
 al F5, vale para todos los visitantes y **el mismo shader puede tener otro `drag` en otra
 página** (que es lo que hace falta: es un comportamiento de la página, no del shader).
 
+**Arranque limpio (semilla estable).** El shader usa `fxrand` para sortear su posición
+inicial. La semilla es **una por carga de página** y el motor **no rearma** un plan que no
+cambió (aunque el pedido sea forzado): antes se volvía a sortear en cada aplicación del plan
+y al cargar hay más de una (registro → fuente fijada → primer refresco), así que se veía un
+fotograma con una posición y al siguiente la corregida. Tampoco se dibuja mientras se rearma.
+
 **API nueva** (consola):
 
 ```js
