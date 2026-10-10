@@ -187,6 +187,83 @@ Backend: colección `include_pages` · `POST /api/include/register` (público) �
 
 ---
 
+## Uniforms y MAPEOS de eventos (nuevo — 10-Oct-2026)
+
+Con el panel abierto (**tecla `S`**) hay dos secciones nuevas, las dos **por página**:
+
+### 1. `uniforms de la fuente`
+
+Un control por cada uniform que declara la fuente (shader / composición / performance),
+con el **mismo módulo de controles que el editor** (`js/lib/uniform-controls.js`):
+
+| tipo | controles posibles (se elige en el selector de cada fila) |
+|---|---|
+| `float` / `int` | slider |
+| `bool` | **switch** o **bang** (pulso) |
+| `vec2` | **pad XY** o 2 sliders |
+| `vec3` | color picker o 3 sliders |
+| `vec4` | color + alpha o 4 sliders |
+
+Los valores **se ven al instante** (se suben al pase que declara el uniform) y con
+**💾 Guardar uniforms** quedan en el servidor para todos los visitantes.
+**Restablecer** vuelve a los valores que trae la fuente.
+
+### 2. `mapeos: eventos de la página → uniforms`
+
+Cada fila dice: **cuando pasa este evento**, **este uniform va de `desde` a `hasta`**.
+
+```
+[evento ▾]  [uniform]   desde  hasta  [curva ▾]  suav  [✓]  0.42 → 0.76  [✕]
+   scroll      drag        0     1.8    suave     0.15        (en vivo)
+```
+
+| evento | qué entrega (0 → 1) |
+|---|---|
+| `scroll` / `scrollY` | scroll vertical de la página (`scrollX` = horizontal) |
+| `visible` | progreso de un elemento (selector CSS): 1 = centrado en pantalla |
+| `mouseX` / `mouseY` | puntero (0 = arriba/izquierda) |
+| `down` | mouse/touch apretado (0 / 1) |
+| `click` | pulso 1 → 0 (decae en ~0.45 s) |
+| `time` | reloj cíclico (período configurable, 8 s) |
+| `tiltX` / `tiltY` | inclinación del teléfono |
+| `random` | ruido suave, siempre vivo |
+
+Extras por fila: **curva** (`lineal`, `suave`, `acelera al final`, `frena al final`,
+`suave en los dos`), **suavizado** (`0` = directo, `0.9` = muy sedoso) y **activo**.
+El campo `uniform` acepta una componente: `u_pos.x`, `u_drag.y`…
+El numerito de la derecha muestra **valor del evento → valor escrito** en vivo.
+
+**Ejemplo (el caso real):** `sancarlopoliroso4` es el fondo de artedigitaldata y su
+`uniform float drag` mueve el arrastre del shader. Para que suba al scrollear:
+
+```
+scroll → drag,  desde 0,  hasta 1.8,  curva suave,  suavizado 0.15   → 💾 Guardar mapeos
+```
+
+**Dónde se guarda:** config de la **página** (no del shader), en el servidor
+(`include_pages` → `uniforms` / `uniformFormats` / `mappings`) y espejada en
+`localStorage` (`jpsi:uni:<clave de página>`) para que arranque al instante. El
+registro (`/api/include/register`) las devuelve y el engine las aplica solo: sobrevive
+al F5, vale para todos los visitantes y **el mismo shader puede tener otro `drag` en otra
+página** (que es lo que hace falta: es un comportamiento de la página, no del shader).
+
+**API nueva** (consola):
+
+```js
+JPShaderInclude.uniforms();                    // valores puestos desde el panel
+JPShaderInclude.setUniform('drag', 1.2);       // o 'u_pos.x'
+JPShaderInclude.mappings();                    // los mapeos
+JPShaderInclude.addMapping('scroll', 'drag', 0, 1.8, { curva: 'smooth', suav: 0.15 });
+JPShaderInclude.setMappings([{ evento: 'visible', uniform: 'u_reveal', sel: '#seccion2', desde: 0, hasta: 1 }]);
+JPShaderInclude.sources();                     // lectura actual de los eventos (debug)
+JPShaderInclude.saveConfig();                  // guarda todo para esta página
+```
+
+**Backend:** `POST /api/include/page-config` (público, CORS `*`, como el register):
+body `{ key, uniforms?, uniformFormats?, mappings? }` — sólo pisa lo que viene.
+
+---
+
 ## API desde consola / desde JS
 
 ```js
