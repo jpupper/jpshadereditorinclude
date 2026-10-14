@@ -79,17 +79,23 @@ pide el plan, lo renderiza y se mantiene al día.
 
 ## Panel (tecla `S`) — toda la interfaz la arma el engine
 
-En **cualquier página** que tenga el include, la tecla <kbd>S</kbd> abre el panel. **No hay que
-agregar ni un `div` a la página**: el HTML del include es sólo el `<script>`, y el engine
-construye el canvas, el HUD, el panel, las listas y el buscador.
+En **cualquier página** que tenga el include, la tecla <kbd>S</kbd> abre el panel de control. **No hay que agregar ni un `div` a la página**: el HTML del include es sólo el `<script>`, y el engine construye el canvas, el HUD, el panel, las listas, los sliders y el buscador.
 
-El panel tiene **3 pestañas indexadas con miniatura**, para elegir la fuente de un click:
+### 🔒 Autenticación con FSCAuth (Protección por defecto)
+- **Para cambiar el fondo o abrir el panel:** Por defecto, el usuario debe haber iniciado sesión con su cuenta de **FSCAuth**.
+- **Si el usuario no está logueado:** Al pulsar <kbd>S</kbd> (o hacer click en el badge HUD), se abre un modal emergente que indica que se requiere inicio de sesión con FSCAuth y un botón directo que redirige a `https://fullscreencode.com/fscauth/login.html`. Al completar el login, el usuario vuelve a la página y el panel se abre automáticamente.
+- **VISITANTES PÚBLICOS (Sin fricción):** Si en el sitio quedó guardado o fijado un shader/composición, **se renderiza siempre libremente** para cualquier visitante público. La autenticación sólo se exige para *abrir el panel o cambiar la configuración/fondo*.
+- **Desactivar exigencia:** Si en desarrollo no se desea login, se puede usar `data-auth="0"` en la etiqueta `<script>`.
 
-| Pestaña | Qué lista | Se aplica como |
+### Las 5 pestañas del panel
+
+| Pestaña | Qué hace | Se aplica como |
 |---|---|---|
-| **SHADERS** | la galería completa (nombre, autor, pases, miniatura) | `data-shader` |
-| **NODE PRESETS** | las composiciones guardadas en el nodeeditor (título, autor, cajas) | `data-comp` (+ `data-pass`) |
-| **PERFORMANCE** | las sesiones guardadas del modo performance (nombre, usuario) | `data-performance` |
+| **SHADERS** | Galería completa de shaders (autor, pases, miniatura) | `data-shader` |
+| **NODE PRESETS** | Composiciones del nodeeditor (cajas, autor, miniatura) | `data-comp` (+ `data-pass`) |
+| **PERFORMANCE** | Sesiones guardadas de performance (nombre, usuario) | `data-performance` |
+| **WEBSITES** | **Gestor de sitios web asociados**: lista qué usuario/owner registró cada sitio, filtros (Todos vs. Mis sitios), botón para vincular el sitio actual a tu usuario, registrar nuevos dominios y asignar fondos | — |
+| **CONFIG** | Ajustes del include: HUD badge [S], contador FPS, transparencia, refresco automático y reset de caché | — |
 
 - **Buscador directo por nombre** (filtra la pestaña activa; ignora mayúsculas y acentos).
 - Cada tarjeta: **Usar** (le pone ese fondo a la página) y **↗** (abre la fuente en el editor).
@@ -100,17 +106,15 @@ El panel tiene **3 pestañas indexadas con miniatura**, para elegir la fuente de
   /jpshadereditor/shader.html?shader=vuelapelucas-fondo
   /jpshadereditor/performanceoutput.html?session=jpupper_mnhy0m84
   ```
-  (o el nombre con prefijo: `shader:miShader` · `perf:jpupper_xxx` · `comp:miComp`;
-  un nombre pelado se toma como composición; tolera comillas y espacios).
+- **Calibración en vivo por shader y por nodo:** Podés mover los sliders de uniforms y de cada nodo de la composición en tiempo real; los cambios se aplican inmediatamente sobre la página y se guardan con **💾 Guardar calibración para esta página**.
 - **fuente actual**: muestra el link de la fuente en uso con un botón **↗ ir al link**.
 - **cómo se usa**: el `<script>` listo con la fuente elegida y un botón **Copiar script**.
 - Estado real: fuente, valor, pase, cantidad de pases, FPS y errores.
 
-Lo elegido queda guardado en `localStorage` (`jpsi:config`), así la próxima vez la página
-arranca con esa fuente. El orden de prioridad es:
+Lo elegido queda guardado en el servidor (`include_pages`) y en `localStorage` (`jpsi:config`), de modo que sobrevive al F5. El orden de prioridad es:
 
 ```
-?comp= / ?shader= / ?session= en la URL  →  data-* del <script>  →  panel / localStorage
+?comp= / ?shader= / ?session= en la URL  →  fuente FIJADA en servidor  →  data-* del <script>  →  localStorage
 ```
 
 Eso significa que **podés compartir un link** `https://tu-pagina/?shader=vuelapelucas-fondo`
@@ -284,7 +288,20 @@ JPShaderInclude.state();                              // { ready, fuente, valor,
 JPShaderInclude.config();                             // configuración efectiva
 JPShaderInclude.renderer();                           // el WebGLRenderer (para tocar uniforms en vivo)
 JPShaderInclude.setBpm(128);                          // BPM global del shader
-JPShaderInclude.openPanel();                          // abre el panel (igual que la tecla S)
+JPShaderInclude.openPanel();                          // abre el panel (pide login FSCAuth si no está logueado)
+JPShaderInclude.closePanel();                         // cierra el panel
+JPShaderInclude.isOpen();                             // boolean: panel abierto?
+
+// FSCAuth
+JPShaderInclude.user();                               // usuario logueado en FSCAuth (o '')
+JPShaderInclude.isLoggedIn();                         // boolean: está logueado en FSCAuth?
+JPShaderInclude.login();                              // redirige al login de FSCAuth SSO
+JPShaderInclude.logout();                             // cierra la sesión de FSCAuth
+
+// Nodos y calibración
+JPShaderInclude.nodes();                              // lista de pases/nodos del plan con sus params y uniforms
+JPShaderInclude.setNodeUniform(passId, 'speed', 1.5); // setea uniform de un nodo específico
+JPShaderInclude.calibrations();                       // calibraciones por fuente de esta página
 ```
 
 ---
@@ -297,6 +314,7 @@ JPShaderInclude.openPanel();                          // abre el panel (igual qu
 | `data-pass` | `output` de la composición | caja que se ve de fondo |
 | `data-shader` | — | un shader de la galería (por nombre) |
 | `data-performance` | — | el output de una sesión de performance (por sessionId) |
+| `data-auth` | `1` | `0` desactiva la exigencia de estar logueado en FSCAuth para cambiar fondo/abrir panel |
 | `data-base` | se deduce del `src` | base del app (si lo servís desde otro host) |
 | `data-front` | el front público | base de las páginas del editor (los links que abre el panel) |
 | `data-refresh` | `20` | segundos entre chequeos de cambios (`0` = no chequear) |
