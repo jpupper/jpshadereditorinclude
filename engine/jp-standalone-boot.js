@@ -44,6 +44,8 @@
             if (e) console.warn('[jp-standalone]', e);
         }, {});
         if (!R.inicializarContexto()) { console.error('[jp-standalone] sin WebGL'); return; }
+        // puntos SIMULADOS (si el bundle trae jp-sim-pointers.js)
+        if (root.JPSimPointers) { try { JPSimPointers.attach(R); } catch (e) { } }
 
         // El tamaño va ANTES de armar los pases: los render targets se crean con él.
         var dpr0 = Math.min(root.devicePixelRatio || 1, maxDpr);
