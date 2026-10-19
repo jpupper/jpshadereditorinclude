@@ -169,6 +169,11 @@
                 '#jp-sa-panel .uniform-switch-check:checked + .uniform-switch-track{background:#ffd34d;border-color:#ffe28f}',
                 '#jp-sa-panel .uniform-switch-check:checked + .uniform-switch-track::after{left:20px;background:#141414}',
                 '#jp-sa-panel .uniform-switch-estado{font-size:9.5px;font-weight:800;color:#8ea0c0;letter-spacing:.06em}',
+                '#jp-sa-panel .tabs{display:flex;gap:5px;flex-wrap:wrap;padding:8px 11px 0}',
+                '#jp-sa-panel .tabs button{background:#141a26;color:#8ea0c0;border:1px solid #2d3547;border-radius:999px;',
+                'padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:.04em;cursor:pointer}',
+                '#jp-sa-panel .tabs button.on{background:#ffd34d;border-color:#ffd34d;color:#141414}',
+                '#jp-sa-panel .item[hidden]{display:none}',
                 '#jp-sa-gear{position:fixed;left:14px;bottom:14px;z-index:2147483000;width:38px;height:38px;border-radius:50%;',
                 'background:rgba(10,13,19,.8);border:1px solid #2d3547;color:#ffd34d;font-size:16px;cursor:pointer;',
                 'display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}'
@@ -200,6 +205,10 @@
                 while ((m = RX.exec(p.source || '')) !== null) declarados[m[2]] = m[1];
                 Object.keys(p.uniforms || {}).forEach(function (n) {
                     if (GLOBALES.test(n)) return;
+                    // La pertenencia al pase sale de la DECLARACION en su GLSL: el plan
+                    // trae todos los uniforms en todos los pases, asi que por `uniforms`
+                    // no se puede saber quien declara que.
+                    if (!declarados[n]) return;
                     if (!mapa[n]) {
                         mapa[n] = {
                             tipo: declarados[n] || (Array.isArray(p.uniforms[n])
@@ -214,6 +223,47 @@
             });
 
             var nombres = Object.keys(mapa);
+            var total = (PLAN.passes || []).length;
+            var globales = nombres.filter(function (n) { return total > 1 && mapa[n].pases.length === total; });
+
+            // barra de tabs: TODOS · GLOBAL · un tab por buffer
+            var tabs = document.createElement('div');
+            tabs.className = 'tabs';
+            var opciones = [{ k: 'todos', t: 'TODOS' }];
+            if (globales.length) opciones.push({ k: 'global', t: 'GLOBAL · ' + globales.length });
+            (PLAN.passes || []).forEach(function (p) {
+                var cuantos = nombres.filter(function (n) {
+                    return mapa[n].pases.indexOf(p.id) !== -1 && globales.indexOf(n) === -1;
+                }).length;
+                opciones.push({ k: p.id, t: (p.name || p.id) + ' (' + cuantos + ')' });
+            });
+
+            var items = [];
+            function filtrar(k) {
+                items.forEach(function (it) {
+                    var ps = it.getAttribute('data-pases') || '';
+                    var esGlobal = it.getAttribute('data-global') === '1';
+                    var ver = (k === 'todos') ||
+                        (k === 'global' && esGlobal) ||
+                        (k !== 'global' && k !== 'todos' && ps.split('|').indexOf(k) !== -1);
+                    it.hidden = !ver;
+                });
+            }
+
+            opciones.forEach(function (o) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'tab' + (o.k === 'todos' ? ' on' : '');
+                b.textContent = o.t;
+                b.addEventListener('click', function () {
+                    Array.prototype.forEach.call(tabs.children, function (x) { x.classList.remove('on'); });
+                    b.classList.add('on');
+                    filtrar(o.k);
+                });
+                tabs.appendChild(b);
+            });
+            panel.insertBefore(tabs, bd);
+
             if (!nombres.length) {
                 var vacio = document.createElement('div');
                 vacio.className = 'ps';
@@ -235,7 +285,13 @@
                         }
                     });
                 } catch (e) { return; }
-                bd.appendChild(ctl.el);
+                var item = document.createElement('div');
+                item.className = 'item';
+                item.setAttribute('data-pases', info.pases.join('|'));
+                item.setAttribute('data-global', (total > 1 && info.pases.length === total) ? '1' : '0');
+                item.appendChild(ctl.el);
+                bd.appendChild(item);
+                items.push(item);
             });
 
             var gear = document.createElement('button');
