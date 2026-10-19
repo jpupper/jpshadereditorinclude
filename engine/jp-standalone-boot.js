@@ -127,6 +127,135 @@
         }
         root.requestAnimationFrame(frame);
 
+        // ---------------------------------------------------- panel de sliders (S)
+        // Sólo para ajustar los uniforms del shader horneado: nada de assets,
+        // fuentes ni calibraciones. Usa el MISMO control que el editor
+        // (JPUniformControls) y escribe directo en el renderer.
+        function montarPanel() {
+            var JUC = root.JPUniformControls;
+            if (!JUC || !JUC.crear) return null;
+            var FMT = root.__JP_PLAN_FORMATS || {};
+            var GLOBALES = /^(time|resolution|mouse|iTime|iMouse|iResolution|iFrame|iChannelTime|fxrand|fxrnd|BPM|bpm|pointers|pointersCount|pointerCount|simPointerCount|lidarPointers|lidarPointersCount|backbuffer|frame|date|sampleRate)$/;
+
+            var css = document.createElement('style');
+            css.textContent = [
+                '#jp-sa-panel{position:fixed;top:14px;left:14px;z-index:2147483000;width:310px;max-height:calc(100vh - 28px);',
+                'display:none;flex-direction:column;background:rgba(10,13,19,.94);border:1px solid #2d3547;border-radius:12px;',
+                'box-shadow:0 12px 40px rgba(0,0,0,.6);color:#dfe6f5;font:12px/1.45 system-ui,sans-serif;backdrop-filter:blur(8px)}',
+                '#jp-sa-panel.on{display:flex}',
+                '#jp-sa-panel .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;',
+                'border-bottom:1px solid #232a38;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:#ffd34d}',
+                '#jp-sa-panel .hd button{background:#1b2130;color:#cfe0ff;border:1px solid #2d3547;border-radius:7px;padding:2px 8px;cursor:pointer}',
+                '#jp-sa-panel .bd{overflow:auto;padding:9px 11px 12px;display:flex;flex-direction:column;gap:8px}',
+                '#jp-sa-panel .ps{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#7d8ba6;margin:6px 0 2px}',
+                '#jp-sa-panel .uniform-slider-row{background:#0b0d13;border:1px solid #232a38;border-radius:9px;padding:6px 8px}',
+                '#jp-sa-panel .uniform-label-row{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}',
+                '#jp-sa-panel .uniform-name-label{font-size:11px;color:#cfe0ff;word-break:break-all}',
+                '#jp-sa-panel .uniform-pass-tag{font-size:9px;color:#6f7d96}',
+                '#jp-sa-panel input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;padding:0;',
+                'background:transparent;border:0;cursor:pointer}',
+                '#jp-sa-panel input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#2d3547}',
+                '#jp-sa-panel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;margin-top:-5px;',
+                'border-radius:50%;background:#ffd34d;border:1px solid #ffe28f}',
+                '#jp-sa-panel input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#2d3547}',
+                '#jp-sa-panel input[type=range]::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:#ffd34d}',
+                '#jp-sa-panel .uv-slider-val{font-size:10px;color:#ffd34d}',
+                '#jp-sa-panel .uniform-switch{display:flex;align-items:center;gap:8px}',
+                '#jp-sa-panel .uniform-switch-check{position:absolute;opacity:0;width:0;height:0;pointer-events:none}',
+                '#jp-sa-panel .uniform-switch-track{position:relative;width:40px;height:22px;border-radius:11px;background:#2d3547;',
+                'border:1px solid #3b465e;cursor:pointer;display:inline-block}',
+                '#jp-sa-panel .uniform-switch-track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;',
+                'border-radius:50%;background:#93a3bb;transition:left .16s,background .16s}',
+                '#jp-sa-panel .uniform-switch-check:checked + .uniform-switch-track{background:#ffd34d;border-color:#ffe28f}',
+                '#jp-sa-panel .uniform-switch-check:checked + .uniform-switch-track::after{left:20px;background:#141414}',
+                '#jp-sa-panel .uniform-switch-estado{font-size:9.5px;font-weight:800;color:#8ea0c0;letter-spacing:.06em}',
+                '#jp-sa-gear{position:fixed;left:14px;bottom:14px;z-index:2147483000;width:38px;height:38px;border-radius:50%;',
+                'background:rgba(10,13,19,.8);border:1px solid #2d3547;color:#ffd34d;font-size:16px;cursor:pointer;',
+                'display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}'
+            ].join('\n');
+            document.head.appendChild(css);
+
+            var panel = document.createElement('div');
+            panel.id = 'jp-sa-panel';
+            var hd = document.createElement('div');
+            hd.className = 'hd';
+            hd.innerHTML = '<span>sliders</span>';
+            var x = document.createElement('button');
+            x.textContent = '\u2715';
+            x.addEventListener('click', function () { panel.classList.remove('on'); });
+            hd.appendChild(x);
+            var bd = document.createElement('div');
+            bd.className = 'bd';
+            panel.appendChild(hd);
+            panel.appendChild(bd);
+
+            // Tipo REAL de cada uniform según su declaración en el GLSL del pase
+            // (los valores del plan son números: sin esto un `bool` saldría como slider).
+            var RX = /uniform\s+(?:lowp\s+|mediump\s+|highp\s+)?(float|bool|int|vec2|vec3|vec4)\s+(\w+)\s*;/g;
+            var mapa = {};          // nombre -> { tipo, valor, pases: [] }
+            (PLAN.passes || []).forEach(function (p) {
+                var declarados = {};
+                RX.lastIndex = 0;
+                var m;
+                while ((m = RX.exec(p.source || '')) !== null) declarados[m[2]] = m[1];
+                Object.keys(p.uniforms || {}).forEach(function (n) {
+                    if (GLOBALES.test(n)) return;
+                    if (!mapa[n]) {
+                        mapa[n] = {
+                            tipo: declarados[n] || (Array.isArray(p.uniforms[n])
+                                ? (p.uniforms[n].length === 2 ? 'vec2' : (p.uniforms[n].length === 4 ? 'vec4' : 'vec3'))
+                                : 'float'),
+                            valor: p.uniforms[n],
+                            pases: []
+                        };
+                    }
+                    mapa[n].pases.push(p.id);
+                });
+            });
+
+            var nombres = Object.keys(mapa);
+            if (!nombres.length) {
+                var vacio = document.createElement('div');
+                vacio.className = 'ps';
+                vacio.textContent = 'este shader no tiene uniforms propios';
+                bd.appendChild(vacio);
+            }
+            nombres.forEach(function (n) {
+                var info = mapa[n];
+                var ctl;
+                try {
+                    ctl = JUC.crear({
+                        nombre: n, tipo: info.tipo, valor: info.valor, mostrarValor: true,
+                        formato: FMT[n],
+                        passTag: info.pases.join(' · '),
+                        onCambio: function (v) {
+                            info.pases.forEach(function (pid) {
+                                try { R.setPassUniform(pid, n, v); } catch (e) { }
+                            });
+                        }
+                    });
+                } catch (e) { return; }
+                bd.appendChild(ctl.el);
+            });
+
+            var gear = document.createElement('button');
+            gear.id = 'jp-sa-gear';
+            gear.title = 'sliders (S)';
+            gear.textContent = '\u2699';
+            gear.addEventListener('click', function () { panel.classList.toggle('on'); });
+
+            document.body.appendChild(panel);
+            document.body.appendChild(gear);
+            root.addEventListener('keydown', function (e) {
+                if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    panel.classList.toggle('on');
+                }
+            });
+            return panel;
+        }
+
+        try { montarPanel(); } catch (e) { console.warn('[jp-standalone] panel:', e && e.message); }
+
         root.JPStandalone = {
             renderer: R,
             canvas: c,
