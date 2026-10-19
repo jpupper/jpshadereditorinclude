@@ -408,3 +408,43 @@ y hacé `node tmp/uitest/test_include_panel_v3.js`.
 | No se ve nada y el body quedó de color | tu CSS pinta el `body` con `!important`: usá `data-keep-bg="1"` y hacé el fondo transparente vos |
 | Anda en local pero no en producción | el `include.js` de producción es viejo: se actualiza solo (cache 60 s) — refrescá con Ctrl+F5 |
 | Un shader con cámara no muestra video | el navegador pide permiso de cámara; los sitios necesitan HTTPS para `getUserMedia` |
+
+
+* * *
+
+## Modo STANDALONE (sin backend)
+
+`engine/` tiene el **motor de shaders** —los mismos archivos que sirve el editor:
+`jp-pointers.js`, `jp-node-graph.js`, `uniform-types.js`, `webglrenderer.js`— más
+`jp-standalone-boot.js`, que monta un **PLAN ya resuelto** y lo anima.
+
+Un *plan* es lo que devuelve `GET /jpshadereditor/api/include/plan?shader=…`
+(pases con su GLSL completo, uniforms, orden y pase visible). Se guarda como
+`plans/<algo>.json` **una vez** y después no hace falta backend nunca más.
+
+```
+standalone.html?plan=plans/tekweek-v15.json      ← demo incluida
+```
+
+- `standalone.html` carga `engine/*.js` + el plan y renderiza (servilo por http,
+  con `file://` el `fetch` del plan está bloqueado).
+- Para un **archivo único** que abra con doble click: exportá el HTML autocontenido
+  (motor + plan incrustados) desde el editor → **SAVE → Exportar → ⬇ HTML standalone**,
+  o por API:
+
+```
+GET https://vps-4455523-x.dattaweb.com/jpshadereditor/api/export/standalone?shader=<nombre>&download=1
+GET …?comp=<nombre>[&pass=<uid>]      GET …?performance=<id>
+```
+
+Ese HTML no hace ni una petición de red: anda en `file://`, en el FTP, en un pendrive.
+
+### En el panel del include
+
+- **RED** muestra si contesta el **VPS** (`WEB ●/○`) y el **server local**
+  (`LOCAL ●/○`): se les pega `/api/include/info` a los dos con 2,5 s de tope.
+- Botón **STANDALONE**: la página queda **sólo con el shader** (desaparecen
+  ASSETS, USO, FONDO, CÓMO SE USA y CALIBRACIÓN). El plan queda guardado en
+  `localStorage` (`jpsi:standalonePlan`) y se reusa aunque el backend esté caído.
+- **SYNC desde WEB / SYNC desde LOCAL**: trae la última versión del shader desde
+  el backend elegido y la guarda como plan por defecto del standalone.

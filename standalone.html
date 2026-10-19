@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jpshadereditorinclude · STANDALONE</title>
+<style>
+  html { background: #000; }
+  body { margin: 0; min-height: 100vh; background: transparent; color: #dfe6f5;
+         font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  .hd { position: relative; z-index: 1; padding: 16px 20px; opacity: .6; letter-spacing: .06em;
+        text-transform: uppercase; font-size: 11px; }
+  .plan { position: relative; z-index: 1; padding: 0 20px; font-size: 12px; color: #7d8ba6; }
+</style>
+</head>
+<body>
+
+<div class="hd">jpshadereditorinclude · STANDALONE · motor local, sin VPS</div>
+<div class="plan" id="info">cargando plan…</div>
+
+<!-- El MOTOR, sin backend: mismos archivos que sirve el editor. -->
+<script src="engine/jp-pointers.js"></script>
+<script src="engine/jp-node-graph.js"></script>
+<script src="engine/uniform-types.js"></script>
+<script src="engine/webglrenderer.js"></script>
+
+<script>
+/* Carga un PLAN ya resuelto (pases con su GLSL completo + uniforms + orden) y lo
+   dibuja con jp-standalone-boot. El plan se puede pedir una vez al backend:
+
+     /jpshadereditor/api/include/plan?shader=<nombre>
+     /jpshadereditor/api/include/plan?comp=<nombre>[&pass=<uid>]
+     /jpshadereditor/api/include/plan?performance=<id>
+
+   y guardarlo como plans/<algo>.json. Después no hace falta backend nunca más.
+
+   ?plan=plans/tekweek-v15.json   (default) */
+(function () {
+    var q = new URLSearchParams(location.search || '');
+    var url = q.get('plan') || 'plans/tekweek-v15.json';
+
+    fetch(url, { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (plan) {
+            if (!plan || plan.ok === false) throw new Error((plan && plan.error) || 'plan inválido');
+            window.__JP_PLAN_CFG = { maxDpr: Number(q.get('dpr')) || 1.5, zIndex: -1 };
+            window.__JP_PLAN = plan;
+            document.getElementById('info').textContent =
+                (plan.label || plan.shader || 'shader') + ' · ' + (plan.passes || []).length + ' pases · ' +
+                (plan.order || []).join(' → ');
+            var s = document.createElement('script');
+            s.src = 'engine/jp-standalone-boot.js';
+            document.body.appendChild(s);
+        })
+        .catch(function (e) {
+            document.getElementById('info').textContent =
+                'no pude cargar el plan (' + url + '): ' + e.message +
+                ' — servilo por http(s): con file:// el fetch está bloqueado';
+        });
+})();
+</script>
+</body>
+</html>
